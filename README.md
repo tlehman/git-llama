@@ -23,7 +23,7 @@ and I will write it for you.
 ![git llama architecture](./architecture.png)
 
 # TODO
-- [ ] Start `ollama` in background if not already started
+- [x] Check if `ollama` is started in background
 - [ ] Add SQLite vector database [sqlite-vec](https://github.com/asg017/sqlite-vec)
 - [ ] Write the input -> Embedding Model code
 - [ ] Write Semantic Search code

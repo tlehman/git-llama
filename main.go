@@ -3,14 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/ollama/ollama/api"
 )
 
+const ERR_NOT_SINGLE_PROMPT = 1
+const ERR_OLLAMA_API_FAIL = 2
+const ERR_OLLAMA_NOT_RUNNING = 3
+
 func usage() {
 	fmt.Printf("Usage:\n  git-llama [your prompt, delimited by quotes]\n")
-	os.Exit(1)
+	os.Exit(ERR_NOT_SINGLE_PROMPT)
 }
 
 // wrap the prompt with git-specific data for the LLM
@@ -18,10 +24,45 @@ func wrap(prompt string) string {
 	return fmt.Sprintf("git command for %s just the command, no text", prompt)
 }
 
+func isOllamaRunning() (bool, error) {
+	// Create a client
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// Use the default Ollama server address
+	serverAddress := "http://localhost:11434"
+
+	// Attempt a simple request to the root endpoint
+	resp, err := client.Get(serverAddress)
+	if err != nil {
+		// If the connection fails (e.g., server not running), return false
+		return false, nil
+	}
+	defer resp.Body.Close()
+
+	// Check if the status code indicates the server is responding
+	if resp.StatusCode == http.StatusOK {
+		return true, nil
+	}
+
+	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+}
+
 func main() {
 	// check if a single prompt is passed in
 	if len(os.Args) != 2 {
 		usage()
+	}
+	// check if ollama is running
+	running, err := isOllamaRunning()
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+		os.Exit(ERR_OLLAMA_API_FAIL)
+	}
+	if !running {
+		fmt.Printf("Ollama is not running! Please run `ollama serve` in another window\n")
+		os.Exit(ERR_OLLAMA_NOT_RUNNING)
 	}
 	// the first argument is assumed to be the prompt input
 	prompt := os.Args[1]
