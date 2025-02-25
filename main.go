@@ -10,6 +10,8 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
+const LLM_MODEL_NAME = "llama3.2"
+
 const ERR_NOT_SINGLE_PROMPT = 1
 const ERR_OLLAMA_API_FAIL = 2
 const ERR_OLLAMA_NOT_RUNNING = 3
@@ -74,7 +76,7 @@ func main() {
 		os.Exit(1)
 	}
 	req := &api.GenerateRequest{
-		Model:  "llama3.2",
+		Model:  LLM_MODEL_NAME,
 		Prompt: wrap(prompt),
 	}
 	// Context for the request
