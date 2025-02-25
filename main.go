@@ -9,6 +9,7 @@ import (
 
 func usage() {
 	fmt.Printf("Usage:\n  git-llama [your prompt, delimited by quotes]\n")
+	os.Exit(1)
 }
 
 func main() {
