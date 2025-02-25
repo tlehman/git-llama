@@ -1,5 +1,7 @@
 # git-llama
 
+![Go Report Card](https://goreportcard.com/badge/github.com/tlehman/git-llama)
+
 Git Llama provides an offline-first, command line interface to [git source control](https://git-scm.com/) that translates your prompt like:
 
 ```sh
