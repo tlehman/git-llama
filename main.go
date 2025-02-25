@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/ollama/ollama/api"
+	"github.com/tlehman/git-llama/vdb"
 )
 
 const LLM_MODEL_NAME = "llama3.2"
@@ -15,6 +17,7 @@ const LLM_MODEL_NAME = "llama3.2"
 const ERR_NOT_SINGLE_PROMPT = 1
 const ERR_OLLAMA_API_FAIL = 2
 const ERR_OLLAMA_NOT_RUNNING = 3
+const ERR_VECTORDB_OPEN_FAIL = 4
 
 func usage() {
 	fmt.Printf("Usage:\n  git-llama [your prompt, delimited by quotes]\n")
@@ -51,7 +54,28 @@ func isOllamaRunning() (bool, error) {
 	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }
 
+func dbfilename() string {
+	// Get the user's home directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error getting home directory:", err)
+		return ""
+	}
+
+	// Construct the full path by joining home directory with .git-llama.db
+	dbPath := filepath.Join(homeDir, ".git-llama.db")
+	return dbPath
+}
+
 func main() {
+	// open or create the vector database
+	vectordb, err := vdb.Open(dbfilename(), LLM_MODEL_NAME)
+	if err != nil {
+		fmt.Printf("failed to open vector db: %s\n", err)
+		os.Exit(ERR_VECTORDB_OPEN_FAIL)
+	}
+	_ = vectordb.Get("foo")
+
 	// check if a single prompt is passed in
 	if len(os.Args) != 2 {
 		usage()
@@ -59,7 +83,7 @@ func main() {
 	// check if ollama is running
 	running, err := isOllamaRunning()
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		fmt.Printf("failed to check if ollama is running: %s\n", err)
 		os.Exit(ERR_OLLAMA_API_FAIL)
 	}
 	if !running {
@@ -69,10 +93,10 @@ func main() {
 	// the first argument is assumed to be the prompt input
 	prompt := os.Args[1]
 
-	// check if ollama is running
+	// create the ollama client
 	client, err := api.ClientFromEnvironment()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "err: %s", err)
+		fmt.Fprintf(os.Stderr, "failed creating a client: %s", err)
 		os.Exit(1)
 	}
 	req := &api.GenerateRequest{
