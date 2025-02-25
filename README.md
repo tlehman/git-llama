@@ -24,7 +24,7 @@ and I will write it for you.
 
 # TODO
 - [x] Check if `ollama` is started in background
-- [ ] Add SQLite vector database [sqlite-vec](https://github.com/asg017/sqlite-vec)
+- [x] Add SQLite vector database [sqlite-vec](https://github.com/asg017/sqlite-vec)
 - [ ] Write the input -> Embedding Model code
 - [ ] Write Semantic Search code
 - [ ] Pair every command with it's inverse (if possible) and lots of unit tests
