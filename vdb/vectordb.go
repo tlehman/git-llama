@@ -7,11 +7,13 @@ package vdb
 
 import (
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"os"
 
+	_ "github.com/asg017/sqlite-vec-go-bindings/ncruces"
+	"github.com/ncruces/go-sqlite3"
 	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 // VectorDatabase represents a file-backed SQLite db with sqlite-vec extension that
@@ -20,6 +22,7 @@ type VectorDatabase struct {
 	filename  string
 	modelname string
 	dimension int
+	DB        *sqlite3.Conn
 }
 
 // Vector is a wrapper around a slice of float64s, this enables vector addition with
@@ -31,26 +34,63 @@ type Vector struct {
 // Open will attempt to find the SQLite db at filename, and if that fails, then create it,
 // and if the creation fails, it will return an error
 func Open(filename string, modelname string) (*VectorDatabase, error) {
+	var vecdb *VectorDatabase
 	// Check if the database file already exists
 	_, err := os.Stat(filename)
 	if err == nil {
 		// If it exists, attempt to open and read from it
-		vecdb, err := openFromExistingFile(filename, modelname)
+		vecdb, err = openFromExistingFile(filename, modelname)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open existing db: %s\n", err)
 		}
-		return vecdb, nil
+	} else {
+		// Otherwise, create the SQLite database using the go-sqlite3 library
+		vecdb, err = createNewDatabase(filename, modelname)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create new db: %s", err)
+		}
 	}
 
-	// If not found, create the SQLite database using the go-sqlite3 library
-	vecdb, err := createNewDatabase(filename, modelname)
+	// open the SQL DB on the VectorDatabase
+	vecdb.DB, err = sqlite3.Open(":memory:")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new db: %s", err)
+		fmt.Printf("failed opening sqlite3 in memory mode: %s\n", err)
+		return nil, err
 	}
+
+	// check the sqlite_version and the vec_version
+	stmt, _, err := vecdb.DB.Prepare(`SELECT sqlite_version(), vec_version()`)
+	if err != nil {
+		fmt.Printf("failed getting vec_version(): %s\n", err)
+		return nil, err
+	}
+	stmt.Step()
+	fmt.Printf("sqlite_version() = %s, vec_version() = %s\n", stmt.ColumnText(0), stmt.ColumnText(1))
+
 	return vecdb, nil
 }
 
+func (vectordb *VectorDatabase) Get(id string) *Vector {
+	var vec Vector
+	// query the vector for that id
+	return &vec
+}
+
+func (vectordb *VectorDatabase) Insert(id string, value string) error {
+	return nil
+}
+
+func (vectordb *VectorDatabase) Update(id string, input string) error {
+	return nil
+}
+
+func (vectordb *VectorDatabase) Close() error {
+	return vectordb.DB.Close()
+}
+
 func openFromExistingFile(filename string, modelname string) (*VectorDatabase, error) {
+	var vecdb VectorDatabase
+
 	// Use the go-sqlite3 library to open and read from the existing database file
 	db, err := sql.Open("sqlite3", filename)
 	if err != nil {
@@ -58,7 +98,6 @@ func openFromExistingFile(filename string, modelname string) (*VectorDatabase, e
 	}
 	defer db.Close()
 
-	//var vecdb VectorDatabase, then .Scan(&vecdb.dimension)
 	var version string
 	err = db.QueryRow(`SELECT sqlite_version();`).Scan(&version)
 	if err != nil {
@@ -66,7 +105,7 @@ func openFromExistingFile(filename string, modelname string) (*VectorDatabase, e
 	}
 	fmt.Printf("sqlite version = %s\n", version)
 
-	return nil, nil
+	return &vecdb, nil
 }
 
 func createNewDatabase(filename string, modelname string) (*VectorDatabase, error) {
@@ -83,11 +122,7 @@ func createNewDatabase(filename string, modelname string) (*VectorDatabase, erro
 		return nil, err
 	}
 
-	// Open a transaction.
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
+	// Create the git_embeddings table
 
 	// Insert the new model info into our table
 	//_, err = db.Exec(`INSERT INTO data VALUES (''::TEXT, $modelname, $dimension, 0)`)
@@ -105,16 +140,4 @@ func createNewDatabase(filename string, modelname string) (*VectorDatabase, erro
 		modelname: modelname,
 		dimension: defaultdim,
 	}, nil
-}
-
-func (vectordb *VectorDatabase) Get(id string) *Vector {
-	return nil
-}
-
-func (vectordb *VectorDatabase) Insert(id string, input string) error {
-	return nil
-}
-
-func (vectordb *VectorDatabase) Update(id string, input string) error {
-	return nil
 }

@@ -74,6 +74,7 @@ func main() {
 		fmt.Printf("failed to open vector db: %s\n", err)
 		os.Exit(ERR_VECTORDB_OPEN_FAIL)
 	}
+	defer vectordb.Close()
 	_ = vectordb.Get("foo")
 
 	// check if a single prompt is passed in
