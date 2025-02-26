@@ -6,10 +6,8 @@
 package vdb
 
 import (
-	"database/sql"
 	_ "embed"
 	"fmt"
-	"os"
 
 	_ "github.com/asg017/sqlite-vec-go-bindings/ncruces"
 	"github.com/ncruces/go-sqlite3"
@@ -34,29 +32,17 @@ type Vector struct {
 // Open will attempt to find the SQLite db at filename, and if that fails, then create it,
 // and if the creation fails, it will return an error
 func Open(filename string, modelname string) (*VectorDatabase, error) {
-	var vecdb *VectorDatabase
-	// Check if the database file already exists
-	_, err := os.Stat(filename)
-	if err == nil {
-		// If it exists, attempt to open and read from it
-		vecdb, err = openFromExistingFile(filename, modelname)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open existing db: %s\n", err)
-		}
-	} else {
-		// Otherwise, create the SQLite database using the go-sqlite3 library
-		vecdb, err = createNewDatabase(filename, modelname)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create new db: %s", err)
-		}
+	var vecdb *VectorDatabase = &VectorDatabase{
+		filename:  filename,
+		modelname: modelname,
 	}
-
 	// open the SQL DB on the VectorDatabase
-	vecdb.DB, err = sqlite3.Open(":memory:")
+	db, err := sqlite3.Open("/Users/tobi/.git-llama.db")
 	if err != nil {
-		fmt.Printf("failed opening sqlite3 in memory mode: %s\n", err)
+		fmt.Errorf("failed opening sqlite3 in memory mode: %s\n", err)
 		return nil, err
 	}
+	vecdb.DB = db
 
 	// check the sqlite_version and the vec_version
 	stmt, _, err := vecdb.DB.Prepare(`SELECT sqlite_version(), vec_version()`)
@@ -86,58 +72,4 @@ func (vectordb *VectorDatabase) Update(id string, input string) error {
 
 func (vectordb *VectorDatabase) Close() error {
 	return vectordb.DB.Close()
-}
-
-func openFromExistingFile(filename string, modelname string) (*VectorDatabase, error) {
-	var vecdb VectorDatabase
-
-	// Use the go-sqlite3 library to open and read from the existing database file
-	db, err := sql.Open("sqlite3", filename)
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	var version string
-	err = db.QueryRow(`SELECT sqlite_version();`).Scan(&version)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get sqlite version: %s\n", err)
-	}
-	fmt.Printf("sqlite version = %s\n", version)
-
-	return &vecdb, nil
-}
-
-func createNewDatabase(filename string, modelname string) (*VectorDatabase, error) {
-	// Use the go-sqlite3 library to create a new database file and add it as an attachment.
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s", filename))
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	// Open a transaction.
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the git_embeddings table
-
-	// Insert the new model info into our table
-	//_, err = db.Exec(`INSERT INTO data VALUES (''::TEXT, $modelname, $dimension, 0)`)
-
-	// Commit the changes (db.Commit was not found)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to commit: %w", err)
-	}
-
-	defaultdim := 768
-
-	return &VectorDatabase{
-		filename:  filename,
-		modelname: modelname,
-		dimension: defaultdim,
-	}, nil
 }
