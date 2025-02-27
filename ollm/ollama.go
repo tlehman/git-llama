@@ -2,15 +2,25 @@
 package ollm
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/ollama/ollama/api"
 )
 
 // Use the default Ollama server address
-const serverAddress = "http://localhost:11434"
+var serverAddress = os.Getenv("OLLAMA_HOST")
 
-func IsOllamaRunning() (bool, error) {
+const serverAddressDefault = "http://localhost:11434"
+const LLM_MODEL_NAME = "llama3.2"
+
+func IsOllamaRunning() bool {
+	if serverAddress == "" {
+		serverAddress = serverAddressDefault
+	}
 	// Create a client
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -20,14 +30,51 @@ func IsOllamaRunning() (bool, error) {
 	resp, err := client.Get(serverAddress)
 	if err != nil {
 		// If the connection fails (e.g., server not running), return false
-		return false, nil
+		return false
 	}
 	defer resp.Body.Close()
 
 	// Check if the status code indicates the server is responding
 	if resp.StatusCode == http.StatusOK {
-		return true, nil
+		return true
 	}
 
-	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	return false
+}
+
+// wrap the prompt with git-specific data for the LLM
+func wrap(prompt string) string {
+	return fmt.Sprintf("git command for %s just the command, no text", prompt)
+}
+
+func Generate(prompt string) string {
+	client, err := api.ClientFromEnvironment()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed creating a client: %s", err)
+		os.Exit(1)
+	}
+
+	req := &api.GenerateRequest{
+		Model:  LLM_MODEL_NAME,
+		Prompt: wrap(prompt),
+		Stream: new(bool),
+	}
+	// Context for the request
+	ctx := context.Background()
+
+	// Create channel and wait group to get all the response back
+	var responseChan chan string = make(chan string, 100)
+
+	// Function to handle the response
+	respond := func(resp api.GenerateResponse) error {
+		responseChan <- resp.Response
+		return nil
+	}
+
+	// Send the prompt and get the response
+	err = client.Generate(ctx, req, respond)
+
+	response := <-responseChan
+
+	return response
 }

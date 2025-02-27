@@ -15,7 +15,9 @@ import (
 )
 
 // VectorDatabase represents a file-backed SQLite db with sqlite-vec extension that
-// will store all the embeddings for the git repo
+// will store all the embeddings for the git repo. The modelname is stored because it
+// is necessary know since it is necessary to work with the vectors later. Different models
+// have a vectors of different dimension.
 type VectorDatabase struct {
 	filename  string
 	modelname string

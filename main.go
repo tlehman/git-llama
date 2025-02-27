@@ -1,32 +1,23 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/ollama/ollama/api"
 	"github.com/tlehman/git-llama/ollm"
 	"github.com/tlehman/git-llama/vdb"
 )
 
-const LLM_MODEL_NAME = "llama3.2"
-
 const ERR_NOT_SINGLE_PROMPT = 1
-const ERR_OLLAMA_API_FAIL = 2
-const ERR_OLLAMA_NOT_RUNNING = 3
-const ERR_VECTORDB_OPEN_FAIL = 4
+const ERR_OLLAMA_NOT_RUNNING = 2
+const ERR_VECTORDB_OPEN_FAIL = 3
 
 func usage() {
 	fmt.Printf("Usage:\n  git-llama [your prompt, delimited by quotes]\n")
 	os.Exit(ERR_NOT_SINGLE_PROMPT)
 }
 
-// wrap the prompt with git-specific data for the LLM
-func wrap(prompt string) string {
-	return fmt.Sprintf("git command for %s just the command, no text", prompt)
-}
 func dbfilename() string {
 	// Get the user's home directory
 	homeDir, err := os.UserHomeDir()
@@ -40,9 +31,17 @@ func dbfilename() string {
 	return dbPath
 }
 
+func exitIfOllamaIsNotRunning() {
+	if !ollm.IsOllamaRunning() {
+		fmt.Printf("Ollama is not running! Please run `ollama serve` in another window\n")
+		os.Exit(ERR_OLLAMA_NOT_RUNNING)
+	}
+}
+
 func main() {
+	exitIfOllamaIsNotRunning()
 	// open or create the vector database
-	vectordb, err := vdb.Open(dbfilename(), LLM_MODEL_NAME)
+	vectordb, err := vdb.Open(dbfilename(), ollm.LLM_MODEL_NAME)
 	if err != nil {
 		fmt.Printf("failed to open vector db: %s\n", err)
 		os.Exit(ERR_VECTORDB_OPEN_FAIL)
@@ -54,38 +53,10 @@ func main() {
 	if len(os.Args) != 2 {
 		usage()
 	}
-	// check if ollama is running
-	running, err := ollm.IsOllamaRunning()
-	if err != nil {
-		fmt.Printf("failed to check if ollama is running: %s\n", err)
-		os.Exit(ERR_OLLAMA_API_FAIL)
-	}
-	if !running {
-		fmt.Printf("Ollama is not running! Please run `ollama serve` in another window\n")
-		os.Exit(ERR_OLLAMA_NOT_RUNNING)
-	}
+
 	// the first argument is assumed to be the prompt input
 	prompt := os.Args[1]
 
-	// create the ollama client
-	client, err := api.ClientFromEnvironment()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed creating a client: %s", err)
-		os.Exit(1)
-	}
-	req := &api.GenerateRequest{
-		Model:  LLM_MODEL_NAME,
-		Prompt: wrap(prompt),
-	}
-	// Context for the request
-	ctx := context.Background()
-
-	// Function to handle the response
-	respond := func(resp api.GenerateResponse) error {
-		fmt.Print(resp.Response) // Print the response as it streams
-		return nil
-	}
-
-	// Send the prompt and get the response
-	err = client.Generate(ctx, req, respond)
+	response := ollm.Generate(prompt)
+	fmt.Println(response)
 }
