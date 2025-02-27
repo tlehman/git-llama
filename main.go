@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/ollama/ollama/api"
+	"github.com/tlehman/git-llama/ollm"
 	"github.com/tlehman/git-llama/vdb"
 )
 
@@ -28,32 +27,6 @@ func usage() {
 func wrap(prompt string) string {
 	return fmt.Sprintf("git command for %s just the command, no text", prompt)
 }
-
-func isOllamaRunning() (bool, error) {
-	// Create a client
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-
-	// Use the default Ollama server address
-	serverAddress := "http://localhost:11434"
-
-	// Attempt a simple request to the root endpoint
-	resp, err := client.Get(serverAddress)
-	if err != nil {
-		// If the connection fails (e.g., server not running), return false
-		return false, nil
-	}
-	defer resp.Body.Close()
-
-	// Check if the status code indicates the server is responding
-	if resp.StatusCode == http.StatusOK {
-		return true, nil
-	}
-
-	return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-}
-
 func dbfilename() string {
 	// Get the user's home directory
 	homeDir, err := os.UserHomeDir()
@@ -82,7 +55,7 @@ func main() {
 		usage()
 	}
 	// check if ollama is running
-	running, err := isOllamaRunning()
+	running, err := ollm.IsOllamaRunning()
 	if err != nil {
 		fmt.Printf("failed to check if ollama is running: %s\n", err)
 		os.Exit(ERR_OLLAMA_API_FAIL)
