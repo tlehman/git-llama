@@ -28,7 +28,7 @@ type VectorDatabase struct {
 // Vector is a wrapper around a slice of float64s, this enables vector addition with
 // methods like v1.Add(v2)
 type Vector struct {
-	values []float64 // len(values) is the dimensions
+	values []float32 // len(values) is the dimensions
 }
 
 // Open will attempt to find the SQLite db at filename, and if that fails, then create it,

@@ -56,7 +56,12 @@ func main() {
 
 	// the first argument is assumed to be the prompt input
 	prompt := os.Args[1]
-
 	response := ollm.Generate(prompt)
 	fmt.Println(response)
+
+	// now show an embedding
+	embedding := ollm.Embed(prompt)
+	if embedding != nil {
+		fmt.Printf("embedding = %v\n", embedding)
+	}
 }

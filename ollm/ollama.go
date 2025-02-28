@@ -63,7 +63,7 @@ func Generate(prompt string) string {
 	ctx := context.Background()
 
 	// Create channel and wait group to get all the response back
-	var responseChan chan string = make(chan string, 100)
+	var responseChan chan string = make(chan string, 1)
 
 	// Function to handle the response
 	respond := func(resp api.GenerateResponse) error {
@@ -77,4 +77,28 @@ func Generate(prompt string) string {
 	response := <-responseChan
 
 	return response
+}
+
+func Embed(prompt string) []float32 {
+	client, err := api.ClientFromEnvironment()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed creating a client: %s", err)
+		os.Exit(1)
+	}
+
+	req := &api.EmbedRequest{
+		Model: LLM_MODEL_NAME,
+		Input: prompt,
+	}
+
+	// Context for the Request
+	ctx := context.Background()
+
+	response, err := client.Embed(ctx, req)
+	if err != nil {
+		fmt.Printf("failed calling ollama embed API: %s\n", err)
+		return nil
+	}
+
+	return response.Embeddings[0]
 }
