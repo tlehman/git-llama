@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"fmt"
 	"regexp"
+	"strings"
 
 	_ "github.com/asg017/sqlite-vec-go-bindings/ncruces"
 	"github.com/ncruces/go-sqlite3"
@@ -31,7 +32,22 @@ type VectorDatabase struct {
 // Vector is a wrapper around a slice of float64s, this enables vector addition with
 // methods like v1.Add(v2)
 type Vector struct {
-	values []float32 // len(values) is the dimensions
+	Values []float32 // len(values) is the dimensions
+}
+
+func (v *Vector) String() string {
+	if len(v.Values) == 0 {
+		return ""
+	}
+
+	// Convert each float32 to string
+	strValues := make([]string, len(v.Values))
+	for i, val := range v.Values {
+		strValues[i] = fmt.Sprintf("%.3f", val) // %g gives compact float representation
+	}
+
+	// Join with commas (no extra space for SQLite compatibility)
+	return strings.Join(strValues, ",")
 }
 
 // Open will attempt to find the SQLite db at filename, and if that fails, then create it,
@@ -42,7 +58,7 @@ func Open(filename string, modelname string) (*VectorDatabase, error) {
 		modelname: modelname,
 	}
 	// open the SQL DB on the VectorDatabase
-	db, err := sqlite3.Open("/Users/tobi/.git-llama.db")
+	db, err := sqlite3.Open(filename)
 	if err != nil {
 		fmt.Errorf("failed opening sqlite3 in memory mode: %s\n", err)
 		return nil, err
@@ -70,7 +86,7 @@ func (vectordb *VectorDatabase) CreateTableIdempotent(dim int) error {
 	vectordb.dimension = dim
 
 	sql := fmt.Sprintf(
-		"CREATE VIRTUAL TABLE IF NOT EXISTS vec_%s USING vec0(embedding float[%d]);",
+		"CREATE VIRTUAL TABLE IF NOT EXISTS vec_%s USING vec0(id text UNIQUE, embedding float[%d]);",
 		clearString(vectordb.modelname),
 		vectordb.dimension,
 	)
@@ -84,7 +100,23 @@ func (vectordb *VectorDatabase) Get(id string) *Vector {
 	return &vec
 }
 
-func (vectordb *VectorDatabase) Insert(id string, value string) error {
+func (vectordb *VectorDatabase) Insert(id string, embedding *Vector) error {
+	tableName := clearString(vectordb.modelname)
+	tx := vectordb.DB.Begin()
+	sql := fmt.Sprintf(
+		"INSERT INTO vec_%s(id, embedding) values ('%s', '[%s]');",
+		tableName,
+		id,
+		embedding.String(),
+	)
+	fmt.Println(sql)
+	err := vectordb.DB.Exec(sql)
+	if err != nil {
+		fmt.Printf("failed executing sql, rolling back tx: %s\n", err)
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
 	return nil
 }
 

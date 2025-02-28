@@ -10,9 +10,12 @@ const modelname = "llama3.2"
 
 var vectordb *VectorDatabase
 
+const dim = 3
+
 // create test vector database
 func setup() {
 	vectordb, _ = Open(dbfilename, modelname)
+	vectordb.CreateTableIdempotent(dim)
 }
 
 // destroy test vector database
@@ -25,7 +28,8 @@ func TestInsert(t *testing.T) {
 	setup()
 	defer teardown()
 
-	err := vectordb.Insert("foo", "bar")
+	v := &Vector{Values: []float32{0, 1, -1}}
+	err := vectordb.Insert("foo", v)
 	if err != nil {
 		t.Fatalf("failed inserting into db: %s", err)
 	}

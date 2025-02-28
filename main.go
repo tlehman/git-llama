@@ -61,4 +61,9 @@ func main() {
 	prompt := os.Args[1]
 	response := ollm.Generate(prompt)
 	fmt.Println(response)
+	embedding := ollm.Embed(prompt)
+	err = vectordb.Insert(response, embedding)
+	if err != nil {
+		fmt.Printf("failed inserting embedding vector: %s\n", err)
+	}
 }

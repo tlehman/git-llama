@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ollama/ollama/api"
+	"github.com/tlehman/git-llama/vdb"
 )
 
 // Use the default Ollama server address
@@ -76,10 +78,11 @@ func Generate(prompt string) string {
 
 	response := <-responseChan
 
-	return response
+	// Since the LLMs denote code with backticks `, we want to strip those:
+	return strings.ReplaceAll(response, "`", "")
 }
 
-func Embed(prompt string) []float32 {
+func Embed(prompt string) *vdb.Vector {
 	client, err := api.ClientFromEnvironment()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed creating a client: %s", err)
@@ -100,7 +103,7 @@ func Embed(prompt string) []float32 {
 		return nil
 	}
 
-	return response.Embeddings[0]
+	return &vdb.Vector{Values: response.Embeddings[0]}
 }
 
 func ModelDimension(modelname string) int {
