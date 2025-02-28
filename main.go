@@ -66,4 +66,6 @@ func main() {
 	if err != nil {
 		fmt.Printf("failed inserting embedding vector: %s\n", err)
 	}
+	vec := vectordb.Get(response)
+	fmt.Printf("vec = %v\n", vec)
 }

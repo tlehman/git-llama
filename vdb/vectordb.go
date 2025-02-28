@@ -7,7 +7,9 @@ package vdb
 
 import (
 	_ "embed"
+	"encoding/binary"
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 
@@ -27,6 +29,11 @@ type VectorDatabase struct {
 	modelname string
 	dimension int
 	DB        *sqlite3.Conn
+}
+
+func (vectordb *VectorDatabase) TableName() string {
+	cleanedModelName := nonAlphanumericRegex.ReplaceAllString(vectordb.modelname, "")
+	return fmt.Sprintf("vec_%s", cleanedModelName)
 }
 
 // Vector is a wrapper around a slice of float64s, this enables vector addition with
@@ -77,17 +84,13 @@ func Open(filename string, modelname string) (*VectorDatabase, error) {
 	return vecdb, nil
 }
 
-func clearString(str string) string {
-	return nonAlphanumericRegex.ReplaceAllString(str, "")
-}
-
 // CreateTableIdempotent takes the dimension, this was to decouple the vdb from the ollm package
 func (vectordb *VectorDatabase) CreateTableIdempotent(dim int) error {
 	vectordb.dimension = dim
 
 	sql := fmt.Sprintf(
-		"CREATE VIRTUAL TABLE IF NOT EXISTS vec_%s USING vec0(id text UNIQUE, embedding float[%d]);",
-		clearString(vectordb.modelname),
+		"CREATE VIRTUAL TABLE IF NOT EXISTS %s USING vec0(id text UNIQUE, embedding float[%d]);",
+		vectordb.TableName(),
 		vectordb.dimension,
 	)
 	err := vectordb.DB.Exec(sql)
@@ -96,16 +99,42 @@ func (vectordb *VectorDatabase) CreateTableIdempotent(dim int) error {
 
 func (vectordb *VectorDatabase) Get(id string) *Vector {
 	var vec Vector
-	// query the vector for that id
+	sql := fmt.Sprintf(
+		"SELECT embedding FROM %s WHERE id = '%s';",
+		vectordb.TableName(),
+		id,
+	)
+	stmt, _, err := vectordb.DB.Prepare(sql)
+	if err != nil {
+		fmt.Printf("failed preparing SQL in Get(%s): %s", id, err)
+		return nil
+	}
+	defer stmt.Close()
+	if stmt.Step() {
+		var values []float32
+		columnRaw := stmt.ColumnRawBlob(0)
+		if columnRaw == nil {
+			fmt.Printf("no embedding found for id %s: ", id)
+			return nil
+		}
+		// TODO make a Vector function that does this conversion and then put a unit test around it
+		// float32 is 4 bytes, so the length of the return values must be len(columnRaw)/4
+		values = make([]float32, len(columnRaw)/4)
+		for i := 0; i < len(columnRaw)/4; i++ {
+			bits := binary.LittleEndian.Uint32(columnRaw[i*4 : (i+1)*4])
+			values[i] = math.Float32frombits(bits)
+		}
+		return &Vector{Values: values}
+	}
+
 	return &vec
 }
 
 func (vectordb *VectorDatabase) Insert(id string, embedding *Vector) error {
-	tableName := clearString(vectordb.modelname)
 	tx := vectordb.DB.Begin()
 	sql := fmt.Sprintf(
-		"INSERT INTO vec_%s(id, embedding) values ('%s', '[%s]');",
-		tableName,
+		"INSERT INTO %s(id, embedding) values ('%s', '[%s]');",
+		vectordb.TableName(),
 		id,
 		embedding.String(),
 	)
