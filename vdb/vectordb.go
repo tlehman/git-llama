@@ -57,6 +57,18 @@ func (v *Vector) String() string {
 	return strings.Join(strValues, ",")
 }
 
+func (v *Vector) Equals(u *Vector) bool {
+	if len(v.Values) != len(u.Values) {
+		return false
+	}
+	for i, vi := range v.Values {
+		if vi != u.Values[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // Open will attempt to find the SQLite db at filename, and if that fails, then create it,
 // and if the creation fails, it will return an error
 func Open(filename string, modelname string) (*VectorDatabase, error) {

@@ -38,3 +38,16 @@ func TestInsert(t *testing.T) {
 		t.Fatal("vector was supposed to be non-nil")
 	}
 }
+
+func TestGet(t *testing.T) {
+	setup()
+	defer teardown()
+	v := &Vector{Values: []float32{0, 1, -1}}
+	_ = vectordb.Insert("foo", v)
+	u := vectordb.Get("foo")
+
+	// TODO verify that u == v
+	if !v.Equals(u) {
+		t.Fatalf("u = %v\nv = %v\n", u, v)
+	}
+}
