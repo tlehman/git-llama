@@ -47,7 +47,10 @@ func main() {
 		os.Exit(ERR_VECTORDB_OPEN_FAIL)
 	}
 	defer vectordb.Close()
-	_ = vectordb.Get("foo")
+	// Get the dimension of the model
+	dim := ollm.ModelDimension(ollm.LLM_MODEL_NAME)
+	// Create the table for the model
+	vectordb.CreateTableIdempotent(dim)
 
 	// check if a single prompt is passed in
 	if len(os.Args) != 2 {
@@ -58,10 +61,4 @@ func main() {
 	prompt := os.Args[1]
 	response := ollm.Generate(prompt)
 	fmt.Println(response)
-
-	// now show an embedding
-	embedding := ollm.Embed(prompt)
-	if embedding != nil {
-		fmt.Printf("embedding = %v\n", embedding)
-	}
 }

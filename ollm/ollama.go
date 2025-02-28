@@ -102,3 +102,22 @@ func Embed(prompt string) []float32 {
 
 	return response.Embeddings[0]
 }
+
+func ModelDimension(modelname string) int {
+	client, err := api.ClientFromEnvironment()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed creating a client: %s", err)
+		os.Exit(1)
+	}
+	ctx := context.Background()
+	req := &api.ShowRequest{
+		Model: modelname,
+	}
+	response, err := client.Show(ctx, req)
+	if err != nil {
+		fmt.Printf("failed calling /api/show: %s\n", err)
+		return -1
+	}
+	dim := (response.ModelInfo["llama.embedding_length"]).(float64)
+	return int(dim)
+}

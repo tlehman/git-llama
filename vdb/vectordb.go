@@ -8,11 +8,14 @@ package vdb
 import (
 	_ "embed"
 	"fmt"
+	"regexp"
 
 	_ "github.com/asg017/sqlite-vec-go-bindings/ncruces"
 	"github.com/ncruces/go-sqlite3"
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
+
+var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 // VectorDatabase represents a file-backed SQLite db with sqlite-vec extension that
 // will store all the embeddings for the git repo. The modelname is stored because it
@@ -56,6 +59,23 @@ func Open(filename string, modelname string) (*VectorDatabase, error) {
 	fmt.Printf("sqlite_version() = %s, vec_version() = %s\n", stmt.ColumnText(0), stmt.ColumnText(1))
 
 	return vecdb, nil
+}
+
+func clearString(str string) string {
+	return nonAlphanumericRegex.ReplaceAllString(str, "")
+}
+
+// CreateTableIdempotent takes the dimension, this was to decouple the vdb from the ollm package
+func (vectordb *VectorDatabase) CreateTableIdempotent(dim int) error {
+	vectordb.dimension = dim
+
+	sql := fmt.Sprintf(
+		"CREATE VIRTUAL TABLE IF NOT EXISTS vec_%s USING vec0(embedding float[%d]);",
+		clearString(vectordb.modelname),
+		vectordb.dimension,
+	)
+	err := vectordb.DB.Exec(sql)
+	return err
 }
 
 func (vectordb *VectorDatabase) Get(id string) *Vector {
