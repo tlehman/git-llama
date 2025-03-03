@@ -2,7 +2,7 @@
 
 ![Go Report Card](https://goreportcard.com/badge/github.com/tlehman/git-llama)
 
-Git Llama provides an offline-first, command line interface to [git source control](https://git-scm.com/) that translates your prompt like:
+Git Llama provides an offline-first, LLM command line interface to [git source control](https://git-scm.com/) that translates your prompt like:
 
 ```sh
 git-llama "show me the last 5 commits, just the commit messages"
