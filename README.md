@@ -27,7 +27,7 @@ and I will write it for you.
 # TODO
 - [x] Check if `ollama` is started in background
 - [x] Add SQLite vector database [sqlite-vec](https://github.com/asg017/sqlite-vec)
-- [ ] Write the vector db module with an interface that lets you insert, update and get the embeddings from the db
+- [x] Write the vector db module with an interface that lets you insert, update and get the embeddings from the db
 - [ ] Write the input -> Embedding Model code
 - [ ] Write Semantic Search code
 - [ ] Pair every command with it's inverse (if possible) and lots of unit tests
