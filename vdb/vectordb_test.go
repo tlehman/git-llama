@@ -51,3 +51,17 @@ func TestGet(t *testing.T) {
 		t.Fatalf("u = %v\nv = %v\n", u, v)
 	}
 }
+
+func TestEquals(t *testing.T) {
+	setup()
+	defer teardown()
+	v := Vector{Values: []float32{0.018, 0.019, -0.021}}
+	err := vectordb.Insert("foo", &v)
+	if err != nil {
+		t.Fatalf("failed inserting foo: %s\n", err.Error())
+	}
+	u := vectordb.Get("foo")
+	if v.Equals(u) == false {
+		t.Fatalf("v = %v\nu = %v\n", v, u)
+	}
+}

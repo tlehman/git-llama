@@ -84,15 +84,6 @@ func Open(filename string, modelname string) (*VectorDatabase, error) {
 	}
 	vecdb.DB = db
 
-	// check the sqlite_version and the vec_version
-	stmt, _, err := vecdb.DB.Prepare(`SELECT sqlite_version(), vec_version()`)
-	if err != nil {
-		fmt.Printf("failed getting vec_version(): %s\n", err)
-		return nil, err
-	}
-	stmt.Step()
-	fmt.Printf("sqlite_version() = %s, vec_version() = %s\n", stmt.ColumnText(0), stmt.ColumnText(1))
-
 	return vecdb, nil
 }
 

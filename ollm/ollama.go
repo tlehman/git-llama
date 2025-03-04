@@ -49,6 +49,8 @@ func wrap(prompt string) string {
 	return fmt.Sprintf("git command for %s just the command, no text", prompt)
 }
 
+// Generate takes [prompt], passes it to the LLM and then returns the response string synchronously.
+// (NOTE: the ollama API has a streaming, async response by default)
 func Generate(prompt string) string {
 	client, err := api.ClientFromEnvironment()
 	if err != nil {
@@ -82,6 +84,7 @@ func Generate(prompt string) string {
 	return strings.ReplaceAll(response, "`", "")
 }
 
+// Embed sends the prompt to the LLM and then returns the vector representation
 func Embed(prompt string) *vdb.Vector {
 	client, err := api.ClientFromEnvironment()
 	if err != nil {
@@ -106,6 +109,7 @@ func Embed(prompt string) *vdb.Vector {
 	return &vdb.Vector{Values: response.Embeddings[0]}
 }
 
+// ModelDimension fetches the dimension of the embedding space for the [modelname]
 func ModelDimension(modelname string) int {
 	client, err := api.ClientFromEnvironment()
 	if err != nil {
