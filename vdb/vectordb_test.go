@@ -46,7 +46,6 @@ func TestGet(t *testing.T) {
 	_ = vectordb.Insert("foo", v)
 	u := vectordb.Get("foo")
 
-	// TODO verify that u == v
 	if !v.Equals(u) {
 		t.Fatalf("u = %v\nv = %v\n", u, v)
 	}
