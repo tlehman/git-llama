@@ -57,6 +57,40 @@ func (v *Vector) String() string {
 	return strings.Join(strValues, ",")
 }
 
+func (v *Vector) Add(u *Vector) *Vector {
+	if len(v.Values) != len(u.Values) || len(v.Values) == 0 {
+		return nil
+	}
+	var values []float32 = make([]float32, len(v.Values))
+	for i, _ := range v.Values {
+		values[i] = v.Values[i] + u.Values[i]
+	}
+	return &Vector{Values: values}
+}
+
+func (v *Vector) Sub(u *Vector) *Vector {
+	if len(v.Values) != len(u.Values) || len(v.Values) == 0 {
+		return nil
+	}
+	var values []float32 = make([]float32, len(v.Values))
+	for i, _ := range v.Values {
+		values[i] = v.Values[i] - u.Values[i]
+	}
+	return &Vector{Values: values}
+}
+
+func (v *Vector) Norm() float32 {
+	var norm float64
+	for i, _ := range v.Values {
+		vsquared := v.Values[i] * v.Values[i]
+		if vsquared != 0.0 {
+			fmt.Printf("v^2 = %v\n", vsquared)
+		}
+		norm += float64(vsquared)
+	}
+	return float32(math.Sqrt(norm))
+}
+
 func (v *Vector) Equals(u *Vector) bool {
 	if len(v.Values) != len(u.Values) {
 		return false
@@ -141,7 +175,6 @@ func (vectordb *VectorDatabase) Insert(id string, embedding *Vector) error {
 		id,
 		embedding.String(),
 	)
-	fmt.Println(sql)
 	err := vectordb.DB.Exec(sql)
 	if err != nil {
 		fmt.Printf("failed executing sql, rolling back tx: %s\n", err)

@@ -64,3 +64,27 @@ func TestEquals(t *testing.T) {
 		t.Fatalf("v = %v\nu = %v\n", v, u)
 	}
 }
+
+func TestAdd(t *testing.T) {
+	setup()
+	defer teardown()
+	v := Vector{Values: []float32{1.0, 2.0, 3.0}}
+	u := Vector{Values: []float32{1.0, 2.0, 3.0}}
+	w := Vector{Values: []float32{2.0, 4.0, 6.0}}
+	vplusu := v.Add(&u)
+	if !vplusu.Equals(&w) {
+		t.Fatalf("v+u = %v\nw = %v\n", vplusu, w)
+	}
+}
+
+func TestSub(t *testing.T) {
+	setup()
+	defer teardown()
+	v := Vector{Values: []float32{1.0, 2.0, 3.0}}
+	u := Vector{Values: []float32{1.0, 2.0, 3.0}}
+	w := Vector{Values: []float32{0.0, 0.0, 0.0}}
+	vplusu := v.Sub(&u)
+	if !vplusu.Equals(&w) {
+		t.Fatalf("v+u = %v\nw = %v\n", vplusu, w)
+	}
+}
