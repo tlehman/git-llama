@@ -1,5 +1,5 @@
 {
-  description = "go lang, SQLite, ollama, deepseek-r1 model";
+  description = "Golang, SQLite, ollama, llama3.2 model";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
