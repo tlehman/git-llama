@@ -13,6 +13,16 @@ Into the real command:
 git log -5 --pretty=format:%s
 ```
 
+# Build with Nix
+
+If you have [nix flakes](https://nhttps://wiki.nixos.org/wiki/Flakes) enabled, you can install `git-llama` with:
+
+```sh
+nix develop
+```
+
+Then run `make`.
+
 # Install
 Git Llama depends on [ollama](https://github.com/ollama/ollama).
 The first iteration of `git-llama` has a decoupled architecture
