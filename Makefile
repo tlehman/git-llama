@@ -1,5 +1,5 @@
 all:
-	go build
+	go build -buildvcs=false
 
 test:
 	go test ./vdb
