@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/tlehman/git-llama/ollm"
@@ -15,7 +14,7 @@ import (
 const BUFSIZE = 1024
 
 const ERR_NOT_SINGLE_PROMPT = 1
-const ERR_OLLAMA_NOT_INSTALLED = 2
+const ERR_OLLAMA_NOT_RUNNING = 2
 const ERR_VECTORDB_OPEN_FAIL = 3
 const ERR_GIT_ERROR = 4
 
@@ -65,27 +64,7 @@ func ensureDbIsGitExcluded() {
 	}
 }
 
-/*
-  - start ollama
-  - check git/vec delta
-    -- update vec db if changed
-  - semantic search
-  - stop ollama
-*/
-
-func startOllama() {
-	ollamaPath := Which("ollama")
-	fmt.Printf("which ollama = %s\n", ollamaPath)
-	cmd := exec.Command(ollamaPath, "serve", "&")
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf("ollama not installed: %s\n", err)
-		os.Exit(ERR_OLLAMA_NOT_INSTALLED)
-	}
-}
-
 func main() {
-	startOllama()
 	// open or create the vector database
 	vectordb, err := vdb.Open(dbfilename(), ollm.LLM_MODEL_NAME)
 	if err != nil {
@@ -114,5 +93,4 @@ func main() {
 		fmt.Printf("failed inserting embedding vector: %s\n", err)
 	}
 	fmt.Println(response)
-	// TODO stop ollama
 }
