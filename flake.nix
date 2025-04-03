@@ -12,9 +12,6 @@
         sqlite
         ollama
       ];
-      shellHook = ''
-        ollama serve 2> /dev/null &
-      '';
     };
   };
 }

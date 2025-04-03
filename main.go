@@ -24,17 +24,19 @@ const ERR_GIT_ERROR = 4
   - stop ollama
 */
 
-func startOllama() {
+func startOllama(stopChan chan bool) {
 	ollamaPath := Which("ollama")
 	cmd := exec.Command(ollamaPath, "serve")
-	err := cmd.Start()
-	if err != nil {
-		fmt.Printf("error starting ollama serve: %s\n", err)
+	cmd.Start()
+	stop := <-stopChan
+	if stop {
+		cmd.Process.Kill()
 	}
 }
 
 func main() {
-	go startOllama()
+	stopChan := make(chan bool, 1)
+	go startOllama(stopChan)
 	// open or create the vector database
 	vectordb, err := vdb.Open(dbfilename(), ollm.LLM_MODEL_NAME)
 	if err != nil {
@@ -63,5 +65,7 @@ func main() {
 		fmt.Printf("failed inserting embedding vector: %s\n", err)
 	}
 	fmt.Println(response)
-	// TODO stop ollama
+
+	stopOllama := true
+	stopChan <- stopOllama
 }
