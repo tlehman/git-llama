@@ -4,10 +4,8 @@ package ollm
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/ollama/ollama/api"
 	"github.com/tlehman/git-llama/vdb"
@@ -18,31 +16,6 @@ var serverAddress = os.Getenv("OLLAMA_HOST")
 
 const serverAddressDefault = "http://localhost:11434"
 const LLM_MODEL_NAME = "llama3.2"
-
-func IsOllamaRunning() bool {
-	if serverAddress == "" {
-		serverAddress = serverAddressDefault
-	}
-	// Create a client
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-
-	// Attempt a simple request to the root endpoint
-	resp, err := client.Get(serverAddress)
-	if err != nil {
-		// If the connection fails (e.g., server not running), return false
-		return false
-	}
-	defer resp.Body.Close()
-
-	// Check if the status code indicates the server is responding
-	if resp.StatusCode == http.StatusOK {
-		return true
-	}
-
-	return false
-}
 
 // wrap the prompt with git-specific data for the LLM
 func wrap(prompt string) string {
