@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/tlehman/git-llama/ollm"
 	"github.com/tlehman/git-llama/vdb"
@@ -19,52 +16,6 @@ const ERR_OLLAMA_NOT_INSTALLED = 2
 const ERR_VECTORDB_OPEN_FAIL = 3
 const ERR_GIT_ERROR = 4
 
-func usage() {
-	fmt.Printf("Usage:\n  git-llama [your prompt, delimited by quotes]\n")
-	os.Exit(ERR_NOT_SINGLE_PROMPT)
-}
-
-func dbfilename() string {
-	// Get the current working directory
-	wd, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Error getting current working directory:", err)
-		return ""
-	}
-
-	// Construct the full path by joining working directory with .git-llama.db
-	dbPath := filepath.Join(wd, ".git-llama.db")
-	return dbPath
-}
-
-func ensureDbIsGitExcluded() {
-	excludeFilePath := ".git/info/exclude"
-	dbfn := ".git-llama.db"
-	data, err := os.ReadFile(excludeFilePath)
-	if err != nil {
-		fmt.Printf("git repo is invalid: %s\n", err)
-		os.Exit(ERR_GIT_ERROR)
-	}
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	for scanner.Scan() {
-		line := scanner.Text()
-		// if the line matches dbfn, then the db filename is excluded from git, and we can return
-		if line == dbfn {
-			return
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		// Handle any scanner errors here
-		fmt.Printf("error reading file: %s\n", err)
-	}
-	// if you make it through the loop, then the dbfilename is NOT in the .git/info/exclude file
-	excludeFile, err := os.OpenFile(excludeFilePath, os.O_RDWR, os.ModeAppend)
-	_, err = excludeFile.WriteString(dbfn + "\n")
-	if err != nil {
-		fmt.Printf("error appending dbfilename to .git/info/exclude\n")
-	}
-}
-
 /*
   - start ollama
   - check git/vec delta
@@ -75,17 +26,15 @@ func ensureDbIsGitExcluded() {
 
 func startOllama() {
 	ollamaPath := Which("ollama")
-	fmt.Printf("which ollama = %s\n", ollamaPath)
-	cmd := exec.Command(ollamaPath, "serve", "&")
-	err := cmd.Run()
+	cmd := exec.Command(ollamaPath, "serve")
+	err := cmd.Start()
 	if err != nil {
-		fmt.Printf("ollama not installed: %s\n", err)
-		os.Exit(ERR_OLLAMA_NOT_INSTALLED)
+		fmt.Printf("error starting ollama serve: %s\n", err)
 	}
 }
 
 func main() {
-	startOllama()
+	go startOllama()
 	// open or create the vector database
 	vectordb, err := vdb.Open(dbfilename(), ollm.LLM_MODEL_NAME)
 	if err != nil {
